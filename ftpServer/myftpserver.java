@@ -3,9 +3,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 
-public class FTPServer
+public class myftpserver
 {
-    private FTPServer()
+    private myftpserver()
     {
     }
 
@@ -13,7 +13,7 @@ public class FTPServer
     {
         int portNumber = Integer.parseInt(args[0]);
 
-        FTPServer ftpServer = new FTPServer();
+        myftpserver ftpServer = new myftpserver();
 
         while (true)
         {

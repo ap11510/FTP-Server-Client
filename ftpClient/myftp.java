@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.Socket;
 
 
-public class FTPClient
+public class myftp
 {
     public static void main(String[] args)
     {
