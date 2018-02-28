@@ -1,34 +1,37 @@
+package ftp.server;
+
 import java.io.*;
-import java.lang.reflect.Field;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.*;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
-public class Processor {
+import ftp.common.Processor;
+import ftp.common.util.Utils;
+import ftp.common.Commands;
+import ftp.common.Codes;
+import ftp.server.net.ServerConnection;
 
-    private Connection connection;
-    private File workingDirectory;
+public class ServerProcessor extends Processor implements Runnable
+{
 
-    List commandList;
-
-    Processor(Connection connection)
+    ServerProcessor(ServerConnection connection) throws IOException, ClassNotFoundException, IllegalAccessException
     {
-        this.workingDirectory = new File(".");
-        this.connection = connection;
+        super(connection);
     }
 
     /**
      *
      */
-    public void run() throws Exception
+    public void run()
     {
         String request;
 
-        init();
-
-        boolean running =  true;
         try
         {
+            boolean running =  true;
+
             do
             {
                 request = connection.receiveMessage();
@@ -39,8 +42,6 @@ public class Processor {
                 }
                 else
                 {
-                    Utils.writeOutput("Message Received: ", request);
-
                     request = request.trim();
                     if (!request.equals(""))
                     {
@@ -52,52 +53,53 @@ public class Processor {
 
                         if (!commandList.contains(command))
                         {
-                            connection.sendMessage(FTPResponseCodes.R_500 + "Invalid Command");
+                            connection.sendMessage(Codes.R_500 + "Invalid Command");
                         }
                         else
                         {
 
                             switch (command)
                             {
-                                case FTPCommands.PWD:
+                                case Commands.PWD:
                                     execute_PWD();
                                     break;
-                                case FTPCommands.LIST:
+                                case Commands.LIST:
                                     execute_LIST();
                                     break;
-                                case FTPCommands.CWD:
+                                case Commands.CWD:
                                     execute_CWD(argument);
                                     break;
-                                case FTPCommands.MKD:
+                                case Commands.MKD:
                                     execute_MKD(argument);
                                     break;
-                                case FTPCommands.DELE:
+                                case Commands.DELE:
                                     execute_DELE(argument);
                                     break;
-                                case FTPCommands.RETR:
+                                case Commands.RETR:
                                     execute_RETR(argument);
                                     break;
-                                case FTPCommands.STOR:
+                                case Commands.STOR:
                                     execute_STOR(argument);
                                     break;
 
-                                case FTPCommands.QUIT:
+                                case Commands.QUIT:
                                     execute_QUIT();
                                     running = false;
                                     break;
                                 default:
-                                    connection.sendMessage(FTPResponseCodes.R_500 + "Command not Implemented");
+                                    connection.sendMessage(Codes.R_500 + "Command not Implemented");
                             }
                         }
                     }
                 }
             }
             while (running);
+
+            connection.close();
         }
         catch (IOException exception)
         {
-            Utils.writeOutput("Communication Error. Connection with remote host terminated.", null);
-            exception.printStackTrace();
+            Utils.writeError("Communication Error. Connection with remote host terminated.", exception);
         }
     }
 
@@ -111,7 +113,7 @@ public class Processor {
 
         StringBuffer response = new StringBuffer();
 
-        response.append(FTPResponseCodes.R_200);
+        response.append(Codes.R_200);
 
         for(File file: fileList)
         {
@@ -141,7 +143,7 @@ public class Processor {
     private void execute_PWD() throws IOException
     {
         connection.sendMessage(
-                    (new StringBuffer(FTPResponseCodes.R_200)
+                    (new StringBuffer(Codes.R_200)
                     .append("Remote Host Working Directory: ")
                     .append(workingDirectory.getCanonicalPath())
                     .toString()));
@@ -158,48 +160,44 @@ public class Processor {
         String response;
         if(argument.equals(""))
         {
-            response = (FTPResponseCodes.R_500 + "Improper Usage: Need either <Directory> or <..>");
+            response = (Codes.R_500 + "Improper Usage: Need either <Directory> or <..>");
         }
         else
         {
-            StringBuffer newDirectoryName = new StringBuffer();
+            String newDirectoryName = null;
 
             if(argument.startsWith("/"))
             {
-                newDirectoryName.append(argument);
+                newDirectoryName = new File(argument).getCanonicalPath();
             }
             else
             if(argument.equals(".."))
             {
-                if (workingDirectory.getCanonicalPath().equals("/"))
+                Path parentPath = workingDirectory.toPath().getParent();
+
+                if (parentPath != null)
                 {
-                    newDirectoryName.append("/");
+                    newDirectoryName = workingDirectory.toPath().getParent().toFile().getCanonicalPath();
                 }
                 else
                 {
-                    String[] pathElements = workingDirectory.getCanonicalPath().split("/");
-                    for (int i = 0; i < pathElements.length - 1 ; i++)
-                    {
-                        newDirectoryName.append("/");
-                        newDirectoryName.append(pathElements[i]);
-                    }
+                    newDirectoryName = workingDirectory.getCanonicalPath();
                 }
+
             }
             else
             {
-                newDirectoryName.append(workingDirectory.getCanonicalPath());
-                newDirectoryName.append("/");
-                newDirectoryName.append(argument);
+                newDirectoryName = (new StringBuffer()).append(workingDirectory.getCanonicalPath()).append(workingDirectory.toPath().getFileSystem().getSeparator()).append(argument).toString();
             }
 
-            File newDirectory = new File(newDirectoryName.toString());
+            File newDirectory = new File(newDirectoryName);
             if (newDirectory.exists())
             {
                 if (newDirectory.isDirectory())
                 {
                     this.workingDirectory = newDirectory;
                     response =
-                            (new StringBuffer(FTPResponseCodes.R_200))
+                            (new StringBuffer(Codes.R_200))
                             .append("Remote Host Working Directory changed to: ")
                             .append(workingDirectory.getCanonicalPath())
                             .toString();
@@ -207,7 +205,7 @@ public class Processor {
                 else
                 {
                     response =
-                            (new StringBuffer(FTPResponseCodes.R_500))
+                            (new StringBuffer(Codes.R_500))
                             .append(newDirectoryName.toString())
                             .append(" - This is a file not a Directory")
                             .toString();
@@ -216,7 +214,7 @@ public class Processor {
             else
             {
                 response =
-                        (new StringBuffer(FTPResponseCodes.R_500))
+                        (new StringBuffer(Codes.R_500))
                         .append("Directory doesn't exist")
                         .toString();
              }
@@ -237,21 +235,21 @@ public class Processor {
         if (argument.equals(""))
         {
             response =
-                    (new StringBuffer(FTPResponseCodes.R_500))
+                    (new StringBuffer(Codes.R_500))
                             .append("Invalid argument, missing directory name")
                             .toString();
         }
         else if (argument.startsWith(".") || argument.startsWith("/"))
         {
             response =
-                    (new StringBuffer(FTPResponseCodes.R_500))
+                    (new StringBuffer(Codes.R_500))
                             .append("Invalid argument: ")
                             .append(argument)
                             .toString();
         } else
             {
 
-            String name = new StringBuffer(workingDirectory.getCanonicalPath()).append("/").append(argument).toString();
+            String name = new StringBuffer(workingDirectory.getCanonicalPath()).append(workingDirectory.toPath().getFileSystem().getSeparator()).append(argument).toString();
 
             File file = new File(name);
 
@@ -260,7 +258,7 @@ public class Processor {
                 if (file.isDirectory())
                 {
                     response =
-                            (new StringBuffer(FTPResponseCodes.R_500))
+                            (new StringBuffer(Codes.R_500))
                             .append("Directory already exists")
                             .append(name)
                             .toString();
@@ -268,7 +266,7 @@ public class Processor {
                 else
                 {
                     response =
-                            (new StringBuffer(FTPResponseCodes.R_500))
+                            (new StringBuffer(Codes.R_500))
                             .append("File with the same name already exists")
                             .append(name)
                             .toString();
@@ -281,7 +279,7 @@ public class Processor {
                     if (file.mkdir())
                     {
                         response =
-                                (new StringBuffer(FTPResponseCodes.R_200))
+                                (new StringBuffer(Codes.R_200))
                                 .append("Directory was created successfully : ")
                                 .append(name)
                                 .toString();
@@ -289,7 +287,7 @@ public class Processor {
                     else
                     {
                         response =
-                                (new StringBuffer(FTPResponseCodes.R_500))
+                                (new StringBuffer(Codes.R_500))
                                 .append("Directory was not created successfully : ")
                                 .append(name)
                                 .toString();
@@ -297,7 +295,7 @@ public class Processor {
 
                 } catch (SecurityException exception) {
                     response =
-                            (new StringBuffer(FTPResponseCodes.R_500))
+                            (new StringBuffer(Codes.R_500))
                                     .append("You don't have permissions to create directory : ")
                                     .append(name)
                                     .toString();
@@ -320,13 +318,13 @@ public class Processor {
         if(argument.equals(""))
         {
             response =
-                    (new StringBuffer(FTPResponseCodes.R_500))
+                    (new StringBuffer(Codes.R_500))
                             .append("Improper Usage: Command is delete <remote_file_name>")
                             .toString();
         }
         else
         {
-            String name = (new StringBuffer(workingDirectory.getCanonicalPath())).append("/").append(argument).toString();
+            String name = (new StringBuffer(workingDirectory.getCanonicalPath())).append(workingDirectory.toPath().getFileSystem().getSeparator()).append(argument).toString();
 
             File file = new File(name);
 
@@ -339,7 +337,7 @@ public class Processor {
                         if (file.delete())
                         {
                             response =
-                                    (new StringBuffer(FTPResponseCodes.R_200))
+                                    (new StringBuffer(Codes.R_200))
                                             .append("File was deleted successfully: ")
                                             .append(name)
                                             .toString();
@@ -348,7 +346,7 @@ public class Processor {
                         else
                         {
                             response =
-                            (new StringBuffer(FTPResponseCodes.R_500))
+                            (new StringBuffer(Codes.R_500))
                                     .append("File was not deleted successfully: ")
                                     .append(name)
                                     .toString();
@@ -358,7 +356,7 @@ public class Processor {
                     catch (SecurityException exception)
                     {
                         response =
-                                (new StringBuffer(FTPResponseCodes.R_500))
+                                (new StringBuffer(Codes.R_500))
                                         .append("You don't have permissions to delete File: ")
                                         .append(name)
                                         .toString();
@@ -367,7 +365,7 @@ public class Processor {
                 else
                 {
                     response =
-                            (new StringBuffer(FTPResponseCodes.R_500))
+                            (new StringBuffer(Codes.R_500))
                                     .append("File does not exist: ")
                                     .append(name)
                                     .toString();
@@ -376,11 +374,11 @@ public class Processor {
             else
             {
                 response =
-                        (new StringBuffer(FTPResponseCodes.R_500))
+                        (new StringBuffer(Codes.R_500))
                                 .append("Cannot delete a directory : ")
                                 .append(name)
                                 .append("\n Use command: ")
-                                .append(FTPCommands.RMD)
+                                .append(Commands.RMD)
                                 .toString();
             }
         }
@@ -395,14 +393,14 @@ public class Processor {
     private void execute_RETR(String argument) throws IOException
     {
         String response;
-        String name = (new StringBuffer(workingDirectory.getCanonicalPath())).append("/").append(argument).toString();
+        String name = (new StringBuffer(workingDirectory.getCanonicalPath())).append(workingDirectory.toPath().getFileSystem().getSeparator()).append(argument).toString();
 
         File file = new File(name);
 
         if (!file.exists())
         {
             response =
-                    (new StringBuffer(FTPResponseCodes.R_400))
+                    (new StringBuffer(Codes.R_400))
                             .append("File does not exist on remote host: ")
                             .append(name)
                             .toString();
@@ -410,7 +408,7 @@ public class Processor {
         }
         else
         {
-            response = FTPResponseCodes.R_100;
+            response = Codes.R_100;
             connection.sendMessage(response);
 
             FileInputStream is = null;
@@ -427,7 +425,7 @@ public class Processor {
             {
                 is = null;
             }
-            response = FTPResponseCodes.R_200 + "File transfer successfull";
+            response = Codes.R_200 + "File transfer successfull";
             connection.sendMessage(response);
 
         }
@@ -441,14 +439,14 @@ public class Processor {
     private void execute_STOR(String argument) throws IOException
     {
         String response;
-        String name = (new StringBuffer(workingDirectory.getCanonicalPath())).append("/").append(argument).toString();
+        String name = (new StringBuffer(workingDirectory.getCanonicalPath())).append(workingDirectory.toPath().getFileSystem().getSeparator()).append(argument).toString();
 
         File file = new File(name);
 
         if (file.exists())
         {
             response =
-                    (new StringBuffer(FTPResponseCodes.R_400))
+                    (new StringBuffer(Codes.R_400))
                             .append("File already exists on remote host: ")
                             .append(name)
                             .toString();
@@ -456,7 +454,7 @@ public class Processor {
         }
         else
         {
-            response = FTPResponseCodes.R_100;
+            response = Codes.R_100;
             connection.sendMessage(response);
 
             FileOutputStream os = null;
@@ -473,7 +471,7 @@ public class Processor {
             {
                 os = null;
             }
-            response = FTPResponseCodes.R_200 + "File transfer successfull";
+            response = Codes.R_200 + "File transfer successfull";
             connection.sendMessage(response);
         }
     }
@@ -486,23 +484,8 @@ public class Processor {
      */
     private void execute_QUIT() throws IOException
     {
-        connection.stop();
+        connection.close();
         connection = null;
-        Utils.writeOutput("Server Now Ready To Accept New Connection", null);
-    }
-
-    private void init() throws Exception
-    {
-        commandList = new ArrayList();
-
-        Class c = Class.forName("FTPCommands");
-        Field[] fields = c.getFields();
-
-        for (Field f : fields)
-        {
-            commandList.add(((String)f.get(new String())).toUpperCase());
-        }
-
     }
 }
 

@@ -1,4 +1,6 @@
-public interface FTPResponseCodes
+package ftp.common;
+
+public interface Codes
 {
     String R_100 = "100\n";  //Series	The requested action is being initiated, expect another reply before proceeding with a new command.
     String R_200 = "200\n";  //Series	The requested action has been successfully completed.
