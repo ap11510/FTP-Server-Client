@@ -1,16 +1,14 @@
 package ftp.common.net;
 
-import ftp.common.util.Utils;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-public abstract class Connection
+public class ControlConnection
 {
-
-    private static int BUFFER_SIZE = 1024;
-
     protected Socket controlSocket;
     private String remoteHostName;
     private int remoteHostCommandPort;
@@ -20,7 +18,8 @@ public abstract class Connection
     private BufferedReader controlSocketReader ;
 
 
-    protected Connection(Socket controlSocket) throws IOException
+    //------------------------------------------------------------------------------------------------------------------
+    public ControlConnection(Socket controlSocket) throws IOException
     {
         this.controlSocket = controlSocket;
 
@@ -37,29 +36,30 @@ public abstract class Connection
         controlSocketReader = new BufferedReader(new InputStreamReader(controlSocket.getInputStream()));
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     final public void close() throws IOException
     {
         controlSocketWriter.close();
         controlSocketReader.close();
 
-        controlSocketWriter = null;
-        controlSocketReader = null;
-        controlSocket = null;
+        controlSocket.close();
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     public final void sendMessage(String message)
     {
-        Utils.writeMessage(new String[]{"Message Sent to remote host: " + getRemoteHostName() + ":" + controlSocket.getPort() , message});
+//        MessageWriter.writeMessage(new String[]{"Message Sent to remote host: " + getRemoteHostName() + ":" + controlSocket.getPort() , message});
         if (message.endsWith("\n"))
         {
             controlSocketWriter.println(message);
         }
         else
         {
-            controlSocketWriter.println((new StringBuffer(message)).append(" \n").toString());
+            controlSocketWriter.println(message + " \n");
         }
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     final public String receiveMessage() throws IOException
     {
         StringBuilder sb = new StringBuilder();
@@ -76,75 +76,32 @@ public abstract class Connection
         }
         String response = sb.toString();
 
-        Utils.writeMessage(new String[]{"Message received from remote host: " + getRemoteHostName() + ":" + controlSocket.getPort() , response});
+//        MessageWriter.writeMessage(new String[]{"Message received from remote host: " + getRemoteHostName() + ":" + controlSocket.getPort() , response});
         return response;
     }
 
-    final public void receiveData(OutputStream os) throws IOException
-    {
-        Socket dataSocket = openDataConnection();
-
-        DataInputStream dataInputStream = new DataInputStream(dataSocket.getInputStream());
-
-        long size = dataInputStream.readLong();
-
-        byte[] buffer = new byte[BUFFER_SIZE];
-
-        int read = 0;
-        int totalRead = 0;
-        int remaining = (int) size;
-
-        while ((read = dataInputStream.read(buffer, 0, Math.min(buffer.length, remaining))) > 0)
-        {
-            totalRead += read;
-            remaining -= read;
-
-            os.write(buffer, 0, read);
-        }
-        dataInputStream.close();
-        dataSocket.close();
-    }
-
-    final public void sendData(long size, InputStream is) throws IOException
-    {
-        Socket dataSocket = openDataConnection();
-
-        DataOutputStream dataOutputStream = new DataOutputStream(dataSocket.getOutputStream());
-
-        dataOutputStream.writeLong(size);
-
-        byte[] buffer = new byte[BUFFER_SIZE];
-
-        while (is.read(buffer) > -1)
-        {
-            dataOutputStream.write(buffer);
-        }
-        dataOutputStream.flush();
-
-        dataOutputStream.close();
-
-        dataSocket.close();
-    }
-
+    //------------------------------------------------------------------------------------------------------------------
     final public String getRemoteHostName()
     {
         return remoteHostName;
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     final public int getRemoteHostCommandPort()
     {
         return remoteHostCommandPort;
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     public String getLocalHostName()
     {
         return localHostName;
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     public int getLocalHostCommandPort()
     {
         return localHostCommandPort;
     }
 
-    protected abstract Socket openDataConnection() throws IOException;
 }

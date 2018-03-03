@@ -1,60 +1,83 @@
 package ftp.client;
 
-import ftp.client.net.ClientConnection;
+import ftp.client.net.ClientConnectionFactory;
+import ftp.client.process.ClientProcessor;
 import ftp.common.application.Config;
-import ftp.common.util.Utils;
+import ftp.common.net.ControlConnection;
+import ftp.common.net.DataConnection;
+import ftp.common.util.MessageWriter;
 
-import java.net.Socket;
-import java.util.logging.Level;
+import java.util.UUID;
 
 
 public class FTPClient
 {
+    //------------------------------------------------------------------------------------------------------------------
     public static void main(String[] args)
     {
-        if (args.length < 2)
+        if (args.length < 3)
         {
-            Utils.writeMessage("Usage: java FTPClient <host name> <port number> ");
+            MessageWriter.writeMessage("Usage: java FTPClient <host name> <control port number> <data port numer>");
             System.exit(1);
         }
 
         Config.initialize(Config.Environment.CLIENT);
         Config.getInstance();
 
+        ClientConnectionFactory connectionFactory = ClientConnectionFactory.getInstance();
+
+
         String message = null;
         try
         {
-            message = "Invalid Port number: " + args[1];
-            int port = Integer.parseInt(args[1]);
+            message = "Invalid Control Port number: " + args[1];
+            int controlSocketPortNumber = Integer.parseInt(args[1]);
 
-            message = "Cannot establish connection with remote host.";
-            Socket controlSocket = new Socket(args[0], port);
+            message = "Invalid Data Port number: " + args[2];
+            int dataSocketPortNumber = Integer.parseInt(args[2]);
 
-            ClientConnection connection;
+            message = "Cannot establish controlConnection with remote host.";
+
+
+            connectionFactory.initialize(args[0], controlSocketPortNumber, dataSocketPortNumber);
             ClientProcessor processor;
 
             message = "Communication Error";
 
-            connection = new ClientConnection(controlSocket);
+            ControlConnection controlConnection = connectionFactory.getControlConnection();
+            DataConnection dataConnection = connectionFactory.getDataConnection();
 
-            Utils.writeMessage("Connected to: " + connection.getRemoteHostName() + ":" + connection.getRemoteHostCommandPort());
+            MessageWriter.writeMessage("Connected to: " + controlConnection.getRemoteHostName() + ":" + controlConnection.getRemoteHostCommandPort());
 
-            processor = new ClientProcessor(connection);
+            processor = new ClientProcessor(UUID.randomUUID(), controlConnection, dataConnection);
 
-            message = "ClientConnection Terminated by remote host";
+            message = "ClientControlConnection Terminated by remote host";
 
-            processor.run();
+            Thread thread = new Thread(processor);
+            thread.start();
+
+            while (true)
+            {
+                if (processor.isRunning())
+                {
+                    Thread.sleep(1000);
+                }
+                else
+                {
+                    break;
+                }
+            }
 
             message = "Communication Error";
-            connection.close();
+            controlConnection.close();
 
-            message = "ClientConnection not closed correctly";
-            controlSocket.close();
+            message = "ClientControlConnection not closed correctly";
+            controlConnection.close();
 
         }
         catch (Exception exception)
         {
-            Utils.writeError(message, exception);
+            MessageWriter.writeError(message, exception);
             System.exit(1);
         }
 

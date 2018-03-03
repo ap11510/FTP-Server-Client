@@ -9,8 +9,7 @@ public class Identity
     private String userName;
     private String machineName;
 
-    Level loggingLevel;
-
+    //------------------------------------------------------------------------------------------------------------------
     protected Identity()
     {
         userName = System.getProperty("user.name");
@@ -29,23 +28,16 @@ public class Identity
         }
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     public String getUserName()
     {
         return userName;
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     public String getMachineName()
     {
         return machineName;
     }
 
-    public Level getLoggingLevel()
-    {
-        return loggingLevel;
-    }
-
-    public void setLoggingLevel(Level loggingLevel)
-    {
-        this.loggingLevel = loggingLevel;
-    }
 }

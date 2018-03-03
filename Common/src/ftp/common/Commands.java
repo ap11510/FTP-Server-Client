@@ -48,7 +48,7 @@ public interface Commands
     String PBSZ = "PBSZ";    //	RFC 2228	Protection Buffer Size
     String PORT = "PORT";    //		Specifies an address and port to which the server should connect.
     String PROT = "PROT";    //	RFC 2228	Data Channel Protection Level.
-    String REIN = "REIN";    //		Re initializes the connection.
+    String REIN = "REIN";    //		Re initializes the controlConnection.
     String REST = "REST";    //	RFC 3659	Restart transfer from the specified point.
     String RNFR = "RNFR";    //		Rename from.
     String RNTO = "RNTO";    //		Rename to.
@@ -72,4 +72,6 @@ public interface Commands
     String XSEN = "XSEN";    //	RFC 737	Send to terminal
 
     String TERM = "TERMINATE";  //special comnmand
+
+    String COMMAND_SUFFIX = "&";
 }

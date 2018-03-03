@@ -1,14 +1,20 @@
 package ftp.common.application;
 
-import java.util.logging.Level;
-
 public class Config
 {
+    //------------------------------------------------------------------------------------------------------------------
+    public interface Environment
+    {
+        String CLIENT = "client";
+        String SERVER = "server";
+    }
+
     private static Config instance;
     private static String environmentType = Environment.SERVER;
     private static boolean initialized = false;
     private Identity identity;
 
+    //------------------------------------------------------------------------------------------------------------------
     public static Config getInstance()
     {
         if (instance == null)
@@ -19,11 +25,13 @@ public class Config
         return instance;
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     public static String getEnvironmentType()
     {
         return environmentType;
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     public static void initialize(String environmentType)
     {
         if (!initialized)
@@ -33,14 +41,10 @@ public class Config
         }
     }
 
+    //------------------------------------------------------------------------------------------------------------------
     public Identity getIdentity()
     {
         return identity;
     }
 
-    public interface Environment
-    {
-        String CLIENT = "client";
-        String SERVER = "server";
-    }
 }
