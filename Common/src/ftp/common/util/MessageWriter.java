@@ -1,8 +1,6 @@
 package ftp.common.util;
 
 
-import ftp.common.Commands;
-
 public class MessageWriter
 {
 
@@ -17,6 +15,7 @@ public class MessageWriter
     {
         if (messageList != null && messageList.length > 0)
         {
+            System.out.println();
             for (String message : messageList)
             {
                 if (message != null)
@@ -24,7 +23,7 @@ public class MessageWriter
                     System.out.println(message);
                 }
             }
-            System.out.println("\n");
+            System.out.println();
         }
     }
 

@@ -2,13 +2,6 @@ package ftp.common.application;
 
 public class Config
 {
-    //------------------------------------------------------------------------------------------------------------------
-    public interface Environment
-    {
-        String CLIENT = "client";
-        String SERVER = "server";
-    }
-
     private static Config instance;
     private static String environmentType = Environment.SERVER;
     private static boolean initialized = false;
@@ -45,6 +38,13 @@ public class Config
     public Identity getIdentity()
     {
         return identity;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+    public interface Environment
+    {
+        String CLIENT = "client";
+        String SERVER = "server";
     }
 
 }

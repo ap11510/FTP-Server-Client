@@ -6,13 +6,11 @@ import java.net.Socket;
 public class DataConnection
 {
 
-    private static int BUFFER_SIZE = 4096;
-
+    private static int BUFFER_SIZE = 16384;
+    protected boolean success = false;
     private Socket dataSocket;
-
-    private DataInputStream dataInputStream ;
-    private DataOutputStream dataOutputStream ;
-
+    private DataInputStream dataInputStream;
+    private DataOutputStream dataOutputStream;
     private boolean stopped = false;
 
     //------------------------------------------------------------------------------------------------------------------
@@ -24,58 +22,93 @@ public class DataConnection
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    final public void receiveData(OutputStream os) throws IOException
+    final public void receiveData(File file) throws IOException
     {
-        stopped = false;
+        FileOutputStream fileOutputStream = new FileOutputStream(file);
+
         long size = dataInputStream.readLong();
 
         byte[] buffer = new byte[BUFFER_SIZE];
 
         int read = 0;
-        int totalRead = 0;
-        int remaining = (int) size;
+        long remaining = size;
 
-        while
-        (
-            (read = dataInputStream.read(buffer, 0, Math.min(buffer.length, remaining))) > 0 &&
-            !stopped
-        )
+
+        while (remaining > 0 && !stopped)
         {
-            totalRead += read;
-            remaining -= read;
+            read = dataInputStream.read(buffer);
+            remaining = remaining - read;
+            fileOutputStream.write(buffer, 0, read);
+        }
+        fileOutputStream.flush();
+        fileOutputStream.close();
 
-            os.write(buffer, 0, read);
-            os.flush();
+        if (stopped)
+        {
+            file.delete();
+        }
+        else
+        {
+            success = true;
         }
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    final public void sendData(long size, InputStream is) throws IOException
+    final public void sendData(File file) throws IOException
     {
-        stopped = false;
+        FileInputStream fileInputStream = new FileInputStream(file);
+
+        long size = file.length();
 
         dataOutputStream.writeLong(size);
 
         byte[] buffer = new byte[BUFFER_SIZE];
 
-        while (is.read(buffer) > -1 && !stopped)
+        while (fileInputStream.read(buffer) > -1 && !stopped)
         {
             dataOutputStream.write(buffer);
         }
         dataOutputStream.flush();
 
+        fileInputStream.close();
+        if (stopped)
+        {
+            file.delete();
+        }
+        else
+        {
+            success = true;
+        }
+
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    final public void close() throws IOException
+    final public void close()
     {
-        dataInputStream.close();
-        dataOutputStream.close();
-        dataSocket.close();
+        try
+        {
+            dataInputStream.close();
+            dataOutputStream.close();
+            dataSocket.close();
+        }
+        catch (IOException exception)
+        {
+
+        }
     }
 
     public void stopDataTransfer()
     {
         stopped = true;
+    }
+
+    public boolean isSuccess()
+    {
+        return success;
+    }
+
+    public boolean isStopped()
+    {
+        return stopped;
     }
 }

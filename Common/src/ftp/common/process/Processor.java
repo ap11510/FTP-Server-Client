@@ -1,7 +1,6 @@
 package ftp.common.process;
 
 import ftp.common.net.ControlConnection;
-import ftp.common.net.DataConnection;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,12 +18,13 @@ public abstract class Processor implements Runnable
 
     protected boolean running;
 
+    protected String sessionId;
+
     //------------------------------------------------------------------------------------------------------------------
-    protected Processor(ControlConnection controlConnection) throws IOException, IllegalAccessException, ClassNotFoundException
+    protected Processor() throws IOException, IllegalAccessException, ClassNotFoundException
     {
         this.running = true;
         this.workingDirectory = new File(new File(".").getCanonicalPath());
-        this.controlConnection = controlConnection;
 
         commandList = new ArrayList();
 

@@ -2,7 +2,6 @@ package ftp.common.application;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.logging.Level;
 
 public class Identity
 {

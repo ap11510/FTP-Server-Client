@@ -2,12 +2,10 @@ package ftp.server.process;
 
 import ftp.common.Codes;
 import ftp.common.Commands;
-import ftp.common.net.ControlConnection;
-import ftp.common.net.DataConnection;
-import ftp.common.process.transaction.FileReceiveTransaction;
-import ftp.common.process.transaction.FileSendTransaction;
-import ftp.common.process.transaction.Transaction;
 import ftp.common.process.Processor;
+import ftp.common.process.transaction.FileTransaction;
+import ftp.common.process.transaction.ReceiveFileTransaction;
+import ftp.common.process.transaction.SendFileTransaction;
 import ftp.common.process.transaction.TransactionManager;
 import ftp.common.util.InputParser;
 import ftp.common.util.MessageWriter;
@@ -16,33 +14,40 @@ import ftp.server.net.ServerConnectionFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
+import java.util.UUID;
 
 
 public class ServerProcessor extends Processor
 {
 
     //------------------------------------------------------------------------------------------------------------------
-    public ServerProcessor(ControlConnection controlConnection) throws Exception
+    public ServerProcessor() throws Exception
     {
-        super(controlConnection);
+        super();
+        controlConnection = ServerConnectionFactory.getInstance().getControlConnection();
+
+        sessionId = UUID.randomUUID().toString();
+
+        controlConnection.sendMessage(sessionId);
+
+        MessageWriter.writeMessage("Connection accepted from: " + controlConnection.getRemoteHostName() + ":" + controlConnection.getLocalHostControlPort());
     }
 
     //------------------------------------------------------------------------------------------------------------------
     public void run()
     {
         String request;
-        String response;
 
         try
         {
-            running =  true;
+            running = true;
 
             do
             {
-                response = null;
                 request = controlConnection.receiveMessage();
 
-                if (request == null)
+                if (request.equals(""))
                 {
                     running = false;
                 }
@@ -67,36 +72,35 @@ public class ServerProcessor extends Processor
                             switch (command)
                             {
                                 case Commands.PWD:
-                                    response = execute_PWD();
+                                    execute_PWD();
                                     break;
                                 case Commands.LIST:
-                                    response = execute_LIST();
+                                    execute_LIST();
                                     break;
                                 case Commands.CWD:
-                                    response = execute_CWD(argument);
+                                    execute_CWD(argument);
                                     break;
                                 case Commands.MKD:
-                                    response = execute_MKD(argument);
+                                    execute_MKD(argument);
                                     break;
                                 case Commands.DELE:
-                                    response = execute_DELE(argument);
+                                    execute_DELE(argument);
                                     break;
                                 case Commands.RETR:
-                                    response = execute_RETR(argument, suffix);
+                                    execute_RETR(argument, suffix);
                                     break;
                                 case Commands.STOR:
-                                    response = execute_STOR(argument, suffix);
+                                    execute_STOR(argument, suffix);
+                                    break;
+                                case Commands.TERM:
+                                    execute_TERM(argument);
                                     break;
                                 case Commands.QUIT:
-                                    MessageWriter.writeMessage("Connection closed by: " + controlConnection.getRemoteHostName() + ":" + controlConnection.getLocalHostCommandPort());
+                                    MessageWriter.writeMessage("Connection closed by: " + controlConnection.getRemoteHostName() + ":" + controlConnection.getLocalHostControlPort());
                                     running = false;
                                     break;
                                 default:
-                                    response = Codes.R_500 + "Command not Implemented";
-                            }
-                            if (response != null)
-                            {
-                                controlConnection.sendMessage(response.toString());
+                                    controlConnection.sendMessage(Codes.R_500 + "Command not Implemented");
                             }
                         }
                     }
@@ -114,7 +118,7 @@ public class ServerProcessor extends Processor
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private String execute_LIST()
+    private void execute_LIST()
     {
         File[] fileList = workingDirectory.listFiles();
 
@@ -122,51 +126,60 @@ public class ServerProcessor extends Processor
 
         response.append(Codes.R_200);
 
+        DecimalFormat formatter = new DecimalFormat();
+
         assert fileList != null;
-        for(File file: fileList)
+        for (File file : fileList)
         {
-            if(file.isFile())
+            if (file.isFile())
             {
                 response.append("File     : ");
             }
-            else if(file.isDirectory())
+            else if (file.isDirectory())
             {
                 response.append("Directory: ");
             }
 
             response.append(file.getName());
 
+            response.append("\t\t");
+
+            if (file.isFile())
+            {
+                response.append(formatter.format(file.length()));
+                response.append(" bytes");
+            }
+
             response.append("\n");
 
         }
-        return response.toString();
+
+        controlConnection.sendMessage(response.toString());
     }
 
 
     //------------------------------------------------------------------------------------------------------------------
-    private String execute_PWD() throws IOException
+    private void execute_PWD() throws IOException
     {
-        return (Codes.R_200 + "Remote Host Working Directory: " + workingDirectory.getCanonicalPath());
+        controlConnection.sendMessage(Codes.R_200 + "Remote Host Working Directory: " + workingDirectory.getCanonicalPath());
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private String execute_CWD(String argument) throws IOException
+    private void execute_CWD(String argument) throws IOException
     {
-        String response;
-        if(argument.equals(""))
+        if (argument.equals(""))
         {
-            response = (Codes.R_500 + "Improper Usage: Need either <Directory> or <..>");
+            controlConnection.sendMessage(Codes.R_500 + "Improper Usage: Need either <Directory> or <..>");
         }
         else
         {
-            String newDirectoryName ;
+            String newDirectoryName;
 
-            if(argument.startsWith("/") || argument.startsWith("\\"))
+            if (argument.startsWith("/") || argument.startsWith("\\"))
             {
                 newDirectoryName = new File(argument).getCanonicalPath();
             }
-            else
-            if(argument.equals(".."))
+            else if (argument.equals(".."))
             {
                 Path parentPath = workingDirectory.toPath().getParent();
 
@@ -180,8 +193,7 @@ public class ServerProcessor extends Processor
                 }
 
             }
-            else
-            if(argument.charAt(1) == ':' && System.getenv("OS").toUpperCase().startsWith("WINDOWS"))
+            else if (argument.charAt(1) == ':' && System.getenv("OS").toUpperCase().startsWith("WINDOWS"))
             {
                 newDirectoryName = new File(argument).getCanonicalPath();
 
@@ -197,48 +209,48 @@ public class ServerProcessor extends Processor
                 if (newDirectory.isDirectory())
                 {
                     this.workingDirectory = newDirectory;
-                    response = Codes.R_200 + " Remote Host Working Directory changed to: " + workingDirectory.getCanonicalPath();
+                    controlConnection.sendMessage(Codes.R_200 + " Remote Host Working Directory changed to: " + workingDirectory.getCanonicalPath());
                 }
                 else
                 {
-                    response = Codes.R_500 + " This is a file not a Directory: " + newDirectoryName;
+                    controlConnection.sendMessage(Codes.R_500 + " This is a file not a Directory: " + newDirectoryName);
                 }
             }
             else
             {
-                response = Codes.R_500 + " Directory doesn't exist";
-             }
+                controlConnection.sendMessage(Codes.R_500 + " Directory doesn't exist");
+            }
         }
-        return response;
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private String execute_MKD(String argument) throws IOException {
-        String response;
-
+    private void execute_MKD(String argument) throws IOException
+    {
         if (argument.equals(""))
         {
-            response = Codes.R_500 + " Invalid argument, missing directory name";
+            controlConnection.sendMessage(Codes.R_500 + " Invalid argument, missing directory name");
         }
         else if (argument.startsWith(".") || argument.startsWith("/"))
         {
-            response = Codes.R_500 + " Invalid argument: " + argument;
-        } else
-            {
+            controlConnection.sendMessage(Codes.R_500 + " Invalid argument: " + argument);
+        }
+        else
+        {
 
             String name = workingDirectory.getCanonicalPath() + workingDirectory.toPath().getFileSystem().getSeparator() + argument;
 
             File file = new File(name);
 
 
-            if (file.exists()) {
+            if (file.exists())
+            {
                 if (file.isDirectory())
                 {
-                    response = Codes.R_500 + " Directory already exists" + name ;
+                    controlConnection.sendMessage(Codes.R_500 + " Directory already exists" + name);
                 }
                 else
                 {
-                    response = Codes.R_500 + " File with the same name already exists" + name;
+                    controlConnection.sendMessage(Codes.R_500 + " File with the same name already exists" + name);
                 }
             }
             else
@@ -247,144 +259,141 @@ public class ServerProcessor extends Processor
                 {
                     if (file.mkdir())
                     {
-                        response = Codes.R_200 + " Directory was created successfully : " + name;
+                        controlConnection.sendMessage(Codes.R_200 + " Directory was created successfully : " + name);
                     }
                     else
                     {
-                        response = Codes.R_500 + " Directory was not created successfully : " + name;
+                        controlConnection.sendMessage(Codes.R_500 + " Directory was not created successfully : " + name);
                     }
 
-                } catch (SecurityException exception) {
-                    response = Codes.R_500 + " You don't have permissions to create directory : " + name;
+                }
+                catch (SecurityException exception)
+                {
+                    controlConnection.sendMessage(Codes.R_500 + " You don't have permissions to create directory : " + name);
                 }
             }
         }
-        return response;
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private String execute_DELE(String argument) throws IOException
+    private void execute_DELE(String argument) throws IOException
     {
-        String response;
-        if(argument.equals(""))
+        if (argument.equals(""))
         {
-            response = Codes.R_500 + " Improper Usage: Command is delete <remote_file_name>";
+            controlConnection.sendMessage(Codes.R_500 + " Improper Usage: Command is delete <remote_file_name>");
         }
         else
         {
-            String name = workingDirectory.getCanonicalPath()+ workingDirectory.toPath().getFileSystem().getSeparator() + argument;
+            String name = workingDirectory.getCanonicalPath() + workingDirectory.toPath().getFileSystem().getSeparator() + argument;
 
             File file = new File(name);
 
-            if(!file.isDirectory())
+            if (!file.isDirectory())
             {
-                if(file.exists())
+                if (file.exists())
                 {
                     try
                     {
                         if (file.delete())
                         {
-                            response = Codes.R_200 + " File was deleted successfully: " + name;
+                            controlConnection.sendMessage(Codes.R_200 + " File was deleted successfully: " + name);
                         }
                         else
                         {
-                            response = Codes.R_500 + " File was not deleted successfully: " + name;
+                            controlConnection.sendMessage(Codes.R_500 + " File was not deleted successfully: " + name);
                         }
 
                     }
                     catch (SecurityException exception)
                     {
-                        response = Codes.R_500 + " You don't have permissions to delete File: " + name;
+                        controlConnection.sendMessage(Codes.R_500 + " You don't have permissions to delete File: " + name);
                     }
                 }
                 else
                 {
-                    response = Codes.R_500 + " File does not exist: " + name;
+                    controlConnection.sendMessage(Codes.R_500 + " File does not exist: " + name);
                 }
             }
             else
             {
-                response = Codes.R_500 + " Cannot delete a directory : " + name + "\n Use command: " + Commands.RMD;
+                controlConnection.sendMessage(Codes.R_500 + " Cannot delete a directory : " + name + "\n Use command: " + Commands.RMD);
             }
         }
-        return response;
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private String execute_RETR(String argument, String suffix) throws IOException
+    private void execute_RETR(String argument, String suffix) throws IOException
     {
-        String response = null;
         String fileName = workingDirectory.getCanonicalPath() + workingDirectory.toPath().getFileSystem().getSeparator() + argument;
 
         File file = new File(fileName);
 
         if (!file.exists())
         {
-            response = Codes.R_400 + " File does not exist on remote host: " +fileName;
+            controlConnection.sendMessage(Codes.R_400 + " File does not exist on remote host: " + fileName);
         }
         else
         {
             controlConnection.sendMessage(Codes.R_100);
 
-            String id = TransactionManager.getInstance().generateId();
+            String transactionId = TransactionManager.getInstance().generateId();
+            controlConnection.sendMessage(transactionId);
 
-            controlConnection.sendMessage(id);
-
-            DataConnection dataConnection = ServerConnectionFactory.getInstance().getDataConnection();
-
-            Transaction transaction = new FileSendTransaction(id, fileName, controlConnection, dataConnection);
-
-
-            transferFile(transaction, suffix.equals(Commands.COMMAND_SUFFIX));
-
-            response = null;
+            FileTransaction fileTransaction = new SendFileTransaction(sessionId, transactionId, fileName, controlConnection, ServerConnectionFactory.getInstance());
+            transferFile(fileTransaction, suffix.equals(Commands.COMMAND_SUFFIX));
         }
-        return response;
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private String execute_STOR(String argument, String suffix) throws IOException
+    private void execute_STOR(String argument, String suffix) throws IOException
     {
-        String response = null;
         String fileName = workingDirectory.getCanonicalPath() + workingDirectory.toPath().getFileSystem().getSeparator() + argument;
 
         File file = new File(fileName);
 
-        //if (file.exists())
+        if (file.exists())
         {
-          //  response = Codes.R_400 + "File already exists on remote host: " + fileName;
+            controlConnection.sendMessage(Codes.R_400 + "File already exists on remote host: " + fileName);
         }
-        if(true)
+        else
         {
-            response = Codes.R_100;
             controlConnection.sendMessage(Codes.R_100);
 
-            String id = TransactionManager.getInstance().generateId();
+            String transactionId = TransactionManager.getInstance().generateId();
+            controlConnection.sendMessage(transactionId);
 
-            DataConnection dataConnection = ServerConnectionFactory.getInstance().getDataConnection();
+            FileTransaction fileTransaction = new ReceiveFileTransaction(sessionId, transactionId, fileName, controlConnection, ServerConnectionFactory.getInstance());
 
-            Transaction transaction = new FileReceiveTransaction(id, fileName, controlConnection, dataConnection);
-
-            controlConnection.sendMessage(id);
-
-            transferFile(transaction, suffix.equals(Commands.COMMAND_SUFFIX));
-
-            response = null;
+            transferFile(fileTransaction, suffix.equals(Commands.COMMAND_SUFFIX));
         }
-        return response;
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private void transferFile(Transaction transaction, boolean runInBackground)
+    private void execute_TERM(String argument)
+    {
+        FileTransaction fileTransaction = TransactionManager.getInstance().getTransactionByID(argument);
+        if (fileTransaction != null)
+        {
+            fileTransaction.stop();
+        }
+        else
+        {
+            controlConnection.sendMessage("No fileTransaction in progress with the specified id: " + argument);
+        }
+    }
+
+
+    //------------------------------------------------------------------------------------------------------------------
+    private void transferFile(FileTransaction fileTransaction, boolean runInBackground)
     {
         if (runInBackground)
         {
-            Thread thread = new Thread(transaction);
+            Thread thread = new Thread(fileTransaction);
             thread.start();
         }
         else
         {
-            transaction.run();
+            fileTransaction.run();
         }
     }
 }

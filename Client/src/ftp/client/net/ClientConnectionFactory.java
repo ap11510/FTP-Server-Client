@@ -46,9 +46,8 @@ public class ClientConnectionFactory extends ConnectionFactory
     {
         Socket socket = new Socket(remoteHost, controlSocketPortNumber);
 
-        ControlConnection connection = new ControlConnection(socket);
+        return new ControlConnection(socket);
 
-        return connection;
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -56,9 +55,8 @@ public class ClientConnectionFactory extends ConnectionFactory
     {
         Socket socket = new Socket(remoteHost, dataSocketPortNumber);
 
-        DataConnection connection = new DataConnection(socket);
+        return new DataConnection(socket);
 
-        return connection;
     }
 }
 

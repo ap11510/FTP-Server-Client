@@ -37,7 +37,7 @@ public class ServerConnectionFactory extends ConnectionFactory
                 throw new IOException("Control port number must be different than data port number ");
             }
 
-            String message= null;
+            String message = null;
 
             try
             {

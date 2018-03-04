@@ -11,43 +11,43 @@
     <property name="client.output.dir" value="${module.client.basedir}/../out/production/Client"/>
     <property name="client.testoutput.dir" value="${module.client.basedir}/../out/test/Client"/>
 
-    <path id="client.module.bootclasspath">
+    <path transactionId="client.module.bootclasspath">
         <!-- Paths to be included in compilation bootclasspath -->
     </path>
 
-    <path id="client.module.production.classpath">
+    <path transactionId="client.module.production.classpath">
         <path refid="${module.jdk.classpath.client}"/>
         <pathelement location="${common.output.dir}"/>
     </path>
 
-    <path id="client.runtime.production.module.classpath">
+    <path transactionId="client.runtime.production.module.classpath">
         <pathelement location="${client.output.dir}"/>
         <path refid="common.runtime.production.module.classpath"/>
     </path>
 
-    <path id="client.module.classpath">
+    <path transactionId="client.module.classpath">
         <path refid="${module.jdk.classpath.client}"/>
         <pathelement location="${client.output.dir}"/>
         <pathelement location="${common.testoutput.dir}"/>
         <pathelement location="${common.output.dir}"/>
     </path>
 
-    <path id="client.runtime.module.classpath">
+    <path transactionId="client.runtime.module.classpath">
         <pathelement location="${client.testoutput.dir}"/>
         <pathelement location="${client.output.dir}"/>
         <path refid="common.runtime.module.classpath"/>
     </path>
 
 
-    <patternset id="excluded.from.module.client">
+    <patternset transactionId="excluded.from.module.client">
         <patternset refid="ignored.files"/>
     </patternset>
 
-    <patternset id="excluded.from.compilation.client">
+    <patternset transactionId="excluded.from.compilation.client">
         <patternset refid="excluded.from.module.client"/>
     </patternset>
 
-    <path id="client.module.sourcepath">
+    <path transactionId="client.module.sourcepath">
         <dirset dir="${module.client.basedir}">
             <include name="src"/>
         </dirset>

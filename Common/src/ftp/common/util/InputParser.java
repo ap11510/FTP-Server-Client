@@ -29,12 +29,12 @@ public class InputParser
 
             if (command.endsWith(Commands.COMMAND_SUFFIX))
             {
-                command = command.substring(0, command.length()-1).trim();
+                command = command.substring(0, command.length() - 1).trim();
             }
 
             if (argument.endsWith(Commands.COMMAND_SUFFIX))
             {
-                argument = argument.substring(0, argument.length()-1).trim();
+                argument = argument.substring(0, argument.length() - 1).trim();
                 suffix = Commands.COMMAND_SUFFIX;
             }
             requestArguments[0] = command;

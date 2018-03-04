@@ -1,31 +1,39 @@
 package ftp.client.process;
 
 import ftp.client.net.ClientConnectionFactory;
-import ftp.common.*;
-import ftp.common.net.ControlConnection;
-import ftp.common.net.DataConnection;
-import ftp.common.process.transaction.FileReceiveTransaction;
-import ftp.common.process.transaction.FileSendTransaction;
-import ftp.common.process.transaction.Transaction;
+import ftp.common.Codes;
+import ftp.common.Commands;
 import ftp.common.process.Processor;
+import ftp.common.process.transaction.FileTransaction;
+import ftp.common.process.transaction.ReceiveFileTransaction;
+import ftp.common.process.transaction.SendFileTransaction;
+import ftp.common.process.transaction.TransactionManager;
 import ftp.common.util.InputParser;
 import ftp.common.util.MessageWriter;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
 public class ClientProcessor extends Processor
 {
     //------------------------------------------------------------------------------------------------------------------
-    public ClientProcessor(ControlConnection controlConnection) throws IOException, ClassNotFoundException, IllegalAccessException
+    public ClientProcessor() throws IOException, ClassNotFoundException, IllegalAccessException
     {
-        super(controlConnection);
+        super();
+
+        controlConnection = ClientConnectionFactory.getInstance().getControlConnection();
+
+        sessionId = controlConnection.receiveCode();
+
+        MessageWriter.writeMessage("Connected to: " + controlConnection.getRemoteHostName() + ":" + controlConnection.getRemoteHostControlPort());
     }
 
     //------------------------------------------------------------------------------------------------------------------
     public void run()
     {
         String request;
-        String response;
 
         try
         {
@@ -34,7 +42,6 @@ public class ClientProcessor extends Processor
             {
                 request = readInput("Command > ").trim();
 
-                response = null;
                 if (!request.equals(""))
                 {
                     String[] requestArguments = InputParser.parseRequest(request);
@@ -55,86 +62,85 @@ public class ClientProcessor extends Processor
                         switch (command)
                         {
                             case Commands.RETR:
-                                response = execute_RETR(argument, suffix);
+                                execute_RETR(argument, suffix);
                                 break;
                             case Commands.STOR:
-                                response = execute_STOR(argument, suffix);
+                                execute_STOR(argument, suffix);
+                                break;
+                            case Commands.TERM:
+                                execute_TERM(argument);
                                 break;
                             case Commands.QUIT:
                                 controlConnection.sendMessage(Commands.QUIT);
                                 running = false;
                                 break;
                             default:
-                                response = execute_ServerCommand(request);
-                        }
-                        if (response != null)
-                        {
-                            MessageWriter.writeMessage(new String[]{response});
+                                execute_ServerCommand(request);
                         }
                     }
                 }
             }
             while (running);
+            controlConnection.close();
         }
         catch (IOException exception)
         {
-            MessageWriter.writeError("ClientControlConnection terminated by remote host : " + controlConnection.getRemoteHostName() + ":" + controlConnection.getRemoteHostCommandPort(), exception);
+            MessageWriter.writeError("ClientControlConnection terminated by remote host : " + controlConnection.getRemoteHostName() + ":" + controlConnection.getRemoteHostControlPort(), exception);
         }
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private String execute_RETR(String fileName, String suffix) throws IOException
+    private void execute_RETR(String fileName, String suffix) throws IOException
     {
-        String response = null;
 
         if (fileName.equals(""))
         {
-            response = "Please specify File Name";
+            MessageWriter.writeMessage("Please specify File Name");
         }
         else if (fileName.startsWith(".") || fileName.startsWith("/") || fileName.startsWith("\\"))
         {
-            response = "Invalid File Name: " + fileName;
+            MessageWriter.writeMessage("Invalid File Name: " + fileName);
         }
         else
         {
             File file = new File(fileName);
 
-            //if (file.exists())
-            //{
-            //    response = "File already exists: " +fileName;
-            //}
-
-            if(true)
+            if (file.exists())
             {
-                response = execute_ServerCommand(Commands.RETR + " " + fileName + suffix);
+                MessageWriter.writeMessage("File already exists: " + fileName);
+            }
+            else
+            {
+                controlConnection.sendMessage(Commands.RETR + " " + fileName + suffix);
+                String response = controlConnection.receiveMessage();
 
                 if (response.startsWith(Codes.R_100))
                 {
-                    String transactionID = controlConnection.receiveMessage();
+                    String transactionID = controlConnection.receiveCode();
 
-                    DataConnection dataConnection = ClientConnectionFactory.getInstance().getDataConnection();
+                    FileTransaction fileTransaction = new ReceiveFileTransaction(sessionId, transactionID, fileName, controlConnection, ClientConnectionFactory.getInstance());
 
-                    Transaction transaction = new FileReceiveTransaction(transactionID, fileName, controlConnection, dataConnection);
-                    transferFile(transaction, suffix.equals(Commands.COMMAND_SUFFIX));
-                    response = null;
+                    transferFile(fileTransaction, suffix.equals(Commands.COMMAND_SUFFIX));
                 }
+                else
+                {
+                    MessageWriter.writeMessage(response);
+                }
+
             }
         }
-        return response;
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private String execute_STOR(String fileName, String suffix) throws IOException
+    private void execute_STOR(String fileName, String suffix) throws IOException
     {
-        String response = null;
-
         if (fileName.equals(""))
         {
-            response = "Please specify File Name";
+            MessageWriter.writeMessage("Please specify File Name");
         }
         else if (fileName.startsWith(".") || fileName.startsWith("/"))
         {
-            response = "Invalid File Name: " + fileName;
+            MessageWriter.writeMessage("Invalid File Name: " + fileName);
         }
         else
         {
@@ -142,34 +148,50 @@ public class ClientProcessor extends Processor
 
             if (!file.exists())
             {
-                response = "File does not exists: " +fileName;
+                MessageWriter.writeMessage("File does not exists: " + fileName);
             }
             else
             {
-                response = execute_ServerCommand(Commands.STOR + " " + fileName + suffix);
+                controlConnection.sendMessage(Commands.STOR + " " + fileName + suffix);
+                String response = controlConnection.receiveMessage();
+
                 if (response.startsWith(Codes.R_100))
                 {
-                    DataConnection dataConnection = ClientConnectionFactory.getInstance().getDataConnection();
+                    String transactionID = controlConnection.receiveCode();
 
-
-                    String transactionID = controlConnection.receiveMessage();
-
-
-                    Transaction transaction = new FileSendTransaction(transactionID, fileName, controlConnection, dataConnection);
-                    transferFile(transaction, suffix.equals(Commands.COMMAND_SUFFIX));
-                    response = null;
+                    FileTransaction fileTransaction = new SendFileTransaction(sessionId, transactionID, fileName, controlConnection, ClientConnectionFactory.getInstance());
+                    transferFile(fileTransaction, suffix.equals(Commands.COMMAND_SUFFIX));
                 }
-
+                else
+                {
+                    MessageWriter.writeMessage(response);
+                }
             }
         }
-        return response;
+    }
+
+
+    //------------------------------------------------------------------------------------------------------------------
+    private void execute_TERM(String argument)
+    {
+        FileTransaction fileTransaction = TransactionManager.getInstance().getTransactionByID(argument);
+        if (fileTransaction != null)
+        {
+            controlConnection.sendMessage(Commands.TERM + " " + argument);
+            fileTransaction.stop();
+        }
+        else
+        {
+            MessageWriter.writeMessage("No fileTransaction in progress with the specified id: " + argument);
+        }
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private String execute_ServerCommand(String request) throws IOException
+    private void execute_ServerCommand(String request) throws IOException
     {
         controlConnection.sendMessage(request);
-        return controlConnection.receiveMessage();
+        String response = controlConnection.receiveMessage();
+        MessageWriter.writeMessage(new String[]{response});
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -181,18 +203,17 @@ public class ClientProcessor extends Processor
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    private void transferFile(Transaction transaction, boolean runInBackground)
+    private void transferFile(FileTransaction fileTransaction, boolean runInBackground)
     {
-        String response = null;
         if (runInBackground)
         {
-            MessageWriter.writeMessage("To terminate transferring file: " + transaction.getFileName() + "\nUse command : " + Commands.TERM + " " + transaction.getId());
-            Thread thread = new Thread(transaction);
+            MessageWriter.writeMessage("To terminate transferring file: " + fileTransaction.getFileName() + "\nUse command : " + Commands.TERM + " " + fileTransaction.getTransactionId());
+            Thread thread = new Thread(fileTransaction);
             thread.start();
         }
         else
         {
-            transaction.run();
+            fileTransaction.run();
         }
     }
 

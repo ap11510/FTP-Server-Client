@@ -3,8 +3,6 @@ package ftp.client;
 import ftp.client.net.ClientConnectionFactory;
 import ftp.client.process.ClientProcessor;
 import ftp.common.application.Config;
-import ftp.common.net.ControlConnection;
-import ftp.common.net.DataConnection;
 import ftp.common.util.MessageWriter;
 
 
@@ -22,9 +20,6 @@ public class FTPClient
         Config.initialize(Config.Environment.CLIENT);
         Config.getInstance();
 
-        ClientConnectionFactory connectionFactory = ClientConnectionFactory.getInstance();
-
-
         String message = null;
         try
         {
@@ -36,19 +31,11 @@ public class FTPClient
 
             message = "Cannot establish controlConnection with remote host.";
 
-
-            connectionFactory.initialize(args[0], controlSocketPortNumber, dataSocketPortNumber);
-            ClientProcessor processor;
+            ClientConnectionFactory.getInstance().initialize(args[0], controlSocketPortNumber, dataSocketPortNumber);
 
             message = "Communication Error";
 
-            ControlConnection controlConnection = connectionFactory.getControlConnection();
-
-            MessageWriter.writeMessage("Connected to: " + controlConnection.getRemoteHostName() + ":" + controlConnection.getRemoteHostCommandPort());
-
-            processor = new ClientProcessor(controlConnection);
-
-            message = "ClientControlConnection Terminated by remote host";
+            ClientProcessor processor = new ClientProcessor();
 
             Thread thread = new Thread(processor);
             thread.start();
@@ -64,13 +51,6 @@ public class FTPClient
                     break;
                 }
             }
-
-            message = "Communication Error";
-            controlConnection.close();
-
-            message = "ClientControlConnection not closed correctly";
-            controlConnection.close();
-
         }
         catch (Exception exception)
         {

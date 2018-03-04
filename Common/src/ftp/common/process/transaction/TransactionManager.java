@@ -24,39 +24,39 @@ public class TransactionManager
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    synchronized public boolean addTransaction(Transaction transaction)
+    synchronized public boolean addTransaction(FileTransaction fileTransaction)
     {
         boolean added = false;
 
-        String id = transaction.getId();
-        String fileName = transaction.getFileName();
+        String id = fileTransaction.getTransactionId();
+        String fileName = fileTransaction.getFileName();
 
         if (!transactionByFileName.containsKey(fileName))
         {
-            transactionByFileName.put(fileName, transaction);
-            transactionById.put(id, transaction);
+            transactionByFileName.put(fileName, fileTransaction);
+            transactionById.put(id, fileTransaction);
             added = true;
         }
         return added;
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    synchronized public void removeTransaction(Transaction transaction)
+    synchronized public void removeTransaction(FileTransaction fileTransaction)
     {
-        transactionById.remove(transaction.getId());
-        transactionByFileName.remove(transaction.getFileName());
+        transactionById.remove(fileTransaction.getTransactionId());
+        transactionByFileName.remove(fileTransaction.getFileName());
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    public Transaction getTransactionByFileName(String fileName)
+    public FileTransaction getTransactionByFileName(String fileName)
     {
-        return (Transaction) transactionByFileName.get(fileName);
+        return (FileTransaction) transactionByFileName.get(fileName);
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    public Transaction getTransactionByID(String id)
+    public FileTransaction getTransactionByID(String id)
     {
-        return (Transaction) transactionById.get(id);
+        return (FileTransaction) transactionById.get(id);
     }
 
     //------------------------------------------------------------------------------------------------------------------

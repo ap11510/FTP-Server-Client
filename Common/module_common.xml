@@ -11,38 +11,38 @@
     <property name="common.output.dir" value="${module.common.basedir}/../out/production/Common"/>
     <property name="common.testoutput.dir" value="${module.common.basedir}/../out/test/Common"/>
 
-    <path id="common.module.bootclasspath">
+    <path transactionId="common.module.bootclasspath">
         <!-- Paths to be included in compilation bootclasspath -->
     </path>
 
-    <path id="common.module.production.classpath">
+    <path transactionId="common.module.production.classpath">
         <path refid="${module.jdk.classpath.common}"/>
     </path>
 
-    <path id="common.runtime.production.module.classpath">
+    <path transactionId="common.runtime.production.module.classpath">
         <pathelement location="${common.output.dir}"/>
     </path>
 
-    <path id="common.module.classpath">
+    <path transactionId="common.module.classpath">
         <path refid="${module.jdk.classpath.common}"/>
         <pathelement location="${common.output.dir}"/>
     </path>
 
-    <path id="common.runtime.module.classpath">
+    <path transactionId="common.runtime.module.classpath">
         <pathelement location="${common.testoutput.dir}"/>
         <pathelement location="${common.output.dir}"/>
     </path>
 
 
-    <patternset id="excluded.from.module.common">
+    <patternset transactionId="excluded.from.module.common">
         <patternset refid="ignored.files"/>
     </patternset>
 
-    <patternset id="excluded.from.compilation.common">
+    <patternset transactionId="excluded.from.compilation.common">
         <patternset refid="excluded.from.module.common"/>
     </patternset>
 
-    <path id="common.module.sourcepath">
+    <path transactionId="common.module.sourcepath">
         <dirset dir="${module.common.basedir}">
             <include name="src"/>
         </dirset>

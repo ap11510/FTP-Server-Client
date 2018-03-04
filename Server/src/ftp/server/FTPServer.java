@@ -1,8 +1,6 @@
 package ftp.server;
 
 import ftp.common.application.Config;
-import ftp.common.net.ControlConnection;
-import ftp.common.net.DataConnection;
 import ftp.common.util.MessageWriter;
 import ftp.server.net.ServerConnectionFactory;
 import ftp.server.process.ServerProcessor;
@@ -31,7 +29,7 @@ public class FTPServer
                 controlSocketPortNumber = Integer.parseInt(args[0]);
 
             }
-            catch(NumberFormatException exception)
+            catch (NumberFormatException exception)
             {
                 MessageWriter.writeError(message, exception);
                 System.exit(1);
@@ -44,7 +42,7 @@ public class FTPServer
                 dataSocketPortNumber = Integer.parseInt(args[1]);
 
             }
-            catch(NumberFormatException exception)
+            catch (NumberFormatException exception)
             {
                 MessageWriter.writeError(message, exception);
                 System.exit(1);
@@ -80,13 +78,7 @@ public class FTPServer
         {
             message = "Cannot Establish Communication with remote host";
 
-            ControlConnection controlConnection = ServerConnectionFactory.getInstance().getControlConnection();
-
-            MessageWriter.writeMessage("Connection accepted from: " + controlConnection.getRemoteHostName() + ":" + controlConnection.getLocalHostCommandPort());
-
-            message = "Runtime Error. Cannot Execute";
-
-            new Thread(new ServerProcessor(controlConnection)).start();
+            new Thread(new ServerProcessor()).start();
 
             message = "Runtime Error. Connections not closed correctly";
 

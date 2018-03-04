@@ -11,11 +11,11 @@ public class ControlConnection
 {
     protected Socket controlSocket;
     private String remoteHostName;
-    private int remoteHostCommandPort;
+    private int remoteHostControlPort;
     private String localHostName;
-    private int localHostCommandPort;
-    private PrintWriter controlSocketWriter ;
-    private BufferedReader controlSocketReader ;
+    private int localHostControlPort;
+    private PrintWriter controlSocketWriter;
+    private BufferedReader controlSocketReader;
 
 
     //------------------------------------------------------------------------------------------------------------------
@@ -27,10 +27,10 @@ public class ControlConnection
         InetSocketAddress localControlSocketAddress = (InetSocketAddress) controlSocket.getLocalSocketAddress();
 
         this.remoteHostName = remoteControlSocketAddress.getHostName();
-        this.remoteHostCommandPort = remoteControlSocketAddress.getPort();
+        this.remoteHostControlPort = remoteControlSocketAddress.getPort();
 
         this.localHostName = localControlSocketAddress.getHostName();
-        this.localHostCommandPort = localControlSocketAddress.getPort();
+        this.localHostControlPort = localControlSocketAddress.getPort();
 
         controlSocketWriter = new PrintWriter(controlSocket.getOutputStream(), true);
         controlSocketReader = new BufferedReader(new InputStreamReader(controlSocket.getInputStream()));
@@ -48,7 +48,6 @@ public class ControlConnection
     //------------------------------------------------------------------------------------------------------------------
     public final void sendMessage(String message)
     {
-//        MessageWriter.writeMessage(new String[]{"Message Sent to remote host: " + getRemoteHostName() + ":" + controlSocket.getPort() , message});
         if (message.endsWith("\n"))
         {
             controlSocketWriter.println(message);
@@ -74,10 +73,15 @@ public class ControlConnection
             sb.append(s);
             sb.append("\n");
         }
-        String response = sb.toString();
+        return sb.toString();
+    }
 
-//        MessageWriter.writeMessage(new String[]{"Message received from remote host: " + getRemoteHostName() + ":" + controlSocket.getPort() , response});
-        return response;
+    //------------------------------------------------------------------------------------------------------------------
+    final public String receiveCode() throws IOException
+    {
+        String response = receiveMessage();
+
+        return response.substring(0, response.length() - 1);
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -87,9 +91,9 @@ public class ControlConnection
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    final public int getRemoteHostCommandPort()
+    final public int getRemoteHostControlPort()
     {
-        return remoteHostCommandPort;
+        return remoteHostControlPort;
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -99,9 +103,9 @@ public class ControlConnection
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    public int getLocalHostCommandPort()
+    public int getLocalHostControlPort()
     {
-        return localHostCommandPort;
+        return localHostControlPort;
     }
 
 }
