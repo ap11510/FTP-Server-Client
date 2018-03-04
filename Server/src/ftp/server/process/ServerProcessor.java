@@ -350,11 +350,11 @@ public class ServerProcessor extends Processor
 
         File file = new File(fileName);
 
-        if (file.exists())
+        //if (file.exists())
         {
-            response = Codes.R_400 + "File already exists on remote host: " + fileName;
+          //  response = Codes.R_400 + "File already exists on remote host: " + fileName;
         }
-        else
+        if(true)
         {
             response = Codes.R_100;
             controlConnection.sendMessage(Codes.R_100);

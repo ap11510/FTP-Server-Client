@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="module_ftp" default="compile.module.ftp">
+  <dirname property="module.ftp.basedir" file="${ant.file.module_ftp}"/>
+  
+  <property name="module.jdk.home.ftp" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.ftp" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.ftp" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.ftp" value="-encoding UTF-8 -source 9 -target 9 ${compiler.args}"/>
+  
+  <property name="ftp.output.dir" value="${module.ftp.basedir}/out/production/FTP"/>
+  <property name="ftp.testoutput.dir" value="${module.ftp.basedir}/out/test/FTP"/>
+  
+  <path id="ftp.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="ftp.module.production.classpath">
+    <path refid="${module.jdk.classpath.ftp}"/>
+  </path>
+  
+  <path id="ftp.runtime.production.module.classpath">
+    <pathelement location="${ftp.output.dir}"/>
+  </path>
+  
+  <path id="ftp.module.classpath">
+    <path refid="${module.jdk.classpath.ftp}"/>
+    <pathelement location="${ftp.output.dir}"/>
+  </path>
+  
+  <path id="ftp.runtime.module.classpath">
+    <pathelement location="${ftp.testoutput.dir}"/>
+    <pathelement location="${ftp.output.dir}"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.ftp">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.ftp">
+    <patternset refid="excluded.from.module.ftp"/>
+  </patternset>
+  
+  <path id="ftp.module.sourcepath">
+    <dirset dir="${module.ftp.basedir}">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.ftp" depends="compile.module.ftp.production,compile.module.ftp.tests" description="Compile module FTP"/>
+  
+  <target name="compile.module.ftp.production" depends="register.custom.compilers" description="Compile module FTP; production classes">
+    <mkdir dir="${ftp.output.dir}"/>
+    <javac2 destdir="${ftp.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.ftp}/javac">
+      <compilerarg line="${compiler.args.ftp}"/>
+      <bootclasspath refid="ftp.module.bootclasspath"/>
+      <classpath refid="ftp.module.production.classpath"/>
+      <src refid="ftp.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.ftp"/>
+    </javac2>
+    
+    <copy todir="${ftp.output.dir}">
+      <fileset dir="${module.ftp.basedir}/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.ftp.tests" depends="register.custom.compilers,compile.module.ftp.production" description="compile module FTP; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.ftp" description="cleanup module">
+    <delete dir="${ftp.output.dir}"/>
+    <delete dir="${ftp.testoutput.dir}"/>
+  </target>
+</project>

@@ -99,11 +99,12 @@ public class ClientProcessor extends Processor
         {
             File file = new File(fileName);
 
-            if (file.exists())
-            {
-                response = "File already exists: " +fileName;
-            }
-            else
+            //if (file.exists())
+            //{
+            //    response = "File already exists: " +fileName;
+            //}
+
+            if(true)
             {
                 response = execute_ServerCommand(Commands.RETR + " " + fileName + suffix);
 
@@ -148,9 +149,11 @@ public class ClientProcessor extends Processor
                 response = execute_ServerCommand(Commands.STOR + " " + fileName + suffix);
                 if (response.startsWith(Codes.R_100))
                 {
+                    DataConnection dataConnection = ClientConnectionFactory.getInstance().getDataConnection();
+
+
                     String transactionID = controlConnection.receiveMessage();
 
-                    DataConnection dataConnection = ClientConnectionFactory.getInstance().getDataConnection();
 
                     Transaction transaction = new FileSendTransaction(transactionID, fileName, controlConnection, dataConnection);
                     transferFile(transaction, suffix.equals(Commands.COMMAND_SUFFIX));
