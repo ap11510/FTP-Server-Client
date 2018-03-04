@@ -8,29 +8,23 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public abstract class Processor implements Runnable
 {
-
-    protected UUID id = null;
     protected File workingDirectory;
 
     protected List commandList;
 
     protected ControlConnection controlConnection;
-    protected DataConnection dataConnection;
 
     protected boolean running;
 
     //------------------------------------------------------------------------------------------------------------------
-    protected Processor(UUID id, ControlConnection controlConnection, DataConnection dataConnection) throws IOException, IllegalAccessException, ClassNotFoundException
+    protected Processor(ControlConnection controlConnection) throws IOException, IllegalAccessException, ClassNotFoundException
     {
-        this.id = id;
         this.running = true;
         this.workingDirectory = new File(new File(".").getCanonicalPath());
         this.controlConnection = controlConnection;
-        this.dataConnection = dataConnection;
 
         commandList = new ArrayList();
 

@@ -7,8 +7,6 @@ import ftp.common.net.ControlConnection;
 import ftp.common.net.DataConnection;
 import ftp.common.util.MessageWriter;
 
-import java.util.UUID;
-
 
 public class FTPClient
 {
@@ -45,11 +43,10 @@ public class FTPClient
             message = "Communication Error";
 
             ControlConnection controlConnection = connectionFactory.getControlConnection();
-            DataConnection dataConnection = connectionFactory.getDataConnection();
 
             MessageWriter.writeMessage("Connected to: " + controlConnection.getRemoteHostName() + ":" + controlConnection.getRemoteHostCommandPort());
 
-            processor = new ClientProcessor(UUID.randomUUID(), controlConnection, dataConnection);
+            processor = new ClientProcessor(controlConnection);
 
             message = "ClientControlConnection Terminated by remote host";
 

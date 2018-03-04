@@ -7,7 +7,6 @@ import ftp.common.util.MessageWriter;
 import ftp.server.net.ServerConnectionFactory;
 import ftp.server.process.ServerProcessor;
 
-import java.util.UUID;
 
 public class FTPServer
 {
@@ -82,13 +81,12 @@ public class FTPServer
             message = "Cannot Establish Communication with remote host";
 
             ControlConnection controlConnection = ServerConnectionFactory.getInstance().getControlConnection();
-            DataConnection dataConnection = ServerConnectionFactory.getInstance().getDataConnection();
 
             MessageWriter.writeMessage("Connection accepted from: " + controlConnection.getRemoteHostName() + ":" + controlConnection.getLocalHostCommandPort());
 
             message = "Runtime Error. Cannot Execute";
 
-            new Thread(new ServerProcessor(UUID.randomUUID(), controlConnection, dataConnection)).start();
+            new Thread(new ServerProcessor(controlConnection)).start();
 
             message = "Runtime Error. Connections not closed correctly";
 

@@ -11,19 +11,20 @@ import ftp.common.process.Processor;
 import ftp.common.process.transaction.TransactionManager;
 import ftp.common.util.InputParser;
 import ftp.common.util.MessageWriter;
+import ftp.server.net.ServerConnectionFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.UUID;
+
 
 public class ServerProcessor extends Processor
 {
 
     //------------------------------------------------------------------------------------------------------------------
-    public ServerProcessor(UUID id, ControlConnection controlConnection, DataConnection dataConnection) throws Exception
+    public ServerProcessor(ControlConnection controlConnection) throws Exception
     {
-        super(id, controlConnection, dataConnection);
+        super(controlConnection);
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -326,9 +327,13 @@ public class ServerProcessor extends Processor
             controlConnection.sendMessage(Codes.R_100);
 
             String id = TransactionManager.getInstance().generateId();
-            Transaction transaction = new FileSendTransaction(id, fileName, controlConnection, dataConnection);
 
             controlConnection.sendMessage(id);
+
+            DataConnection dataConnection = ServerConnectionFactory.getInstance().getDataConnection();
+
+            Transaction transaction = new FileSendTransaction(id, fileName, controlConnection, dataConnection);
+
 
             transferFile(transaction, suffix.equals(Commands.COMMAND_SUFFIX));
 
@@ -355,6 +360,9 @@ public class ServerProcessor extends Processor
             controlConnection.sendMessage(Codes.R_100);
 
             String id = TransactionManager.getInstance().generateId();
+
+            DataConnection dataConnection = ServerConnectionFactory.getInstance().getDataConnection();
+
             Transaction transaction = new FileReceiveTransaction(id, fileName, controlConnection, dataConnection);
 
             controlConnection.sendMessage(id);

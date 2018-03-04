@@ -19,8 +19,6 @@ public class FileReceiveTransaction extends Transaction
     @Override
     public void executeTransfer()
     {
-        transactionManager.addTransaction(this);
-
         File file = new File(fileName);
         FileOutputStream fileOutputStream = null;
         try

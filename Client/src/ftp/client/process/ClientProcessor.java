@@ -1,5 +1,6 @@
 package ftp.client.process;
 
+import ftp.client.net.ClientConnectionFactory;
 import ftp.common.*;
 import ftp.common.net.ControlConnection;
 import ftp.common.net.DataConnection;
@@ -11,14 +12,13 @@ import ftp.common.util.InputParser;
 import ftp.common.util.MessageWriter;
 
 import java.io.*;
-import java.util.UUID;
 
 public class ClientProcessor extends Processor
 {
     //------------------------------------------------------------------------------------------------------------------
-    public ClientProcessor(UUID id, ControlConnection controlConnection, DataConnection dataConnection) throws IOException, ClassNotFoundException, IllegalAccessException
+    public ClientProcessor(ControlConnection controlConnection) throws IOException, ClassNotFoundException, IllegalAccessException
     {
-        super(id, controlConnection, dataConnection);
+        super(controlConnection);
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -111,6 +111,8 @@ public class ClientProcessor extends Processor
                 {
                     String transactionID = controlConnection.receiveMessage();
 
+                    DataConnection dataConnection = ClientConnectionFactory.getInstance().getDataConnection();
+
                     Transaction transaction = new FileReceiveTransaction(transactionID, fileName, controlConnection, dataConnection);
                     transferFile(transaction, suffix.equals(Commands.COMMAND_SUFFIX));
                     response = null;
@@ -147,6 +149,8 @@ public class ClientProcessor extends Processor
                 if (response.startsWith(Codes.R_100))
                 {
                     String transactionID = controlConnection.receiveMessage();
+
+                    DataConnection dataConnection = ClientConnectionFactory.getInstance().getDataConnection();
 
                     Transaction transaction = new FileSendTransaction(transactionID, fileName, controlConnection, dataConnection);
                     transferFile(transaction, suffix.equals(Commands.COMMAND_SUFFIX));

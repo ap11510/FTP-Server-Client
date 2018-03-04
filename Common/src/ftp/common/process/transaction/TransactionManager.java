@@ -69,7 +69,7 @@ public class TransactionManager
             number = generator.nextInt(16384);
             id = Integer.toString(number);
         }
-        while (!transactionById.containsKey(id));
+        while (transactionById.containsKey(id));
 
         return id;
 

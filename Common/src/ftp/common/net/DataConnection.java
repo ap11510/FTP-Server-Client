@@ -6,7 +6,7 @@ import java.net.Socket;
 public class DataConnection
 {
 
-    private static int BUFFER_SIZE = 1024;
+    private static int BUFFER_SIZE = 4096;
 
     private Socket dataSocket;
 
@@ -35,12 +35,17 @@ public class DataConnection
         int totalRead = 0;
         int remaining = (int) size;
 
-        while ((read = dataInputStream.read(buffer, 0, Math.min(buffer.length, remaining))) > 0 && !stopped)
+        while
+        (
+            (read = dataInputStream.read(buffer, 0, Math.min(buffer.length, remaining))) > 0 &&
+            !stopped
+        )
         {
             totalRead += read;
             remaining -= read;
 
             os.write(buffer, 0, read);
+            os.flush();
         }
     }
 
