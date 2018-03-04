@@ -103,14 +103,13 @@ public class ClientProcessor extends Processor
         }
         else
         {
-            File file = new File(fileName);
+            //File file = new File(fileName);
 
-            if (file.exists())
+            /*if (file.exists())
             {
                 MessageWriter.writeMessage("File already exists: " + fileName);
-            }
-            else
-            {
+            }*/
+            
                 controlConnection.sendMessage(Commands.RETR + " " + fileName + suffix);
                 String response = controlConnection.receiveMessage();
 
@@ -127,7 +126,7 @@ public class ClientProcessor extends Processor
                     MessageWriter.writeMessage(response);
                 }
 
-            }
+            
         }
     }
 

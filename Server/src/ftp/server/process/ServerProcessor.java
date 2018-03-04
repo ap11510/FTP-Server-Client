@@ -349,14 +349,14 @@ public class ServerProcessor extends Processor
     {
         String fileName = workingDirectory.getCanonicalPath() + workingDirectory.toPath().getFileSystem().getSeparator() + argument;
 
-        File file = new File(fileName);
+        /*File file = new File(fileName);
 
         if (file.exists())
         {
             controlConnection.sendMessage(Codes.R_400 + "File already exists on remote host: " + fileName);
         }
         else
-        {
+        {*/
             controlConnection.sendMessage(Codes.R_100);
 
             String transactionId = TransactionManager.getInstance().generateId();
@@ -365,7 +365,7 @@ public class ServerProcessor extends Processor
             FileTransaction fileTransaction = new ReceiveFileTransaction(sessionId, transactionId, fileName, controlConnection, ServerConnectionFactory.getInstance());
 
             transferFile(fileTransaction, suffix.equals(Commands.COMMAND_SUFFIX));
-        }
+        //}
     }
 
     //------------------------------------------------------------------------------------------------------------------
