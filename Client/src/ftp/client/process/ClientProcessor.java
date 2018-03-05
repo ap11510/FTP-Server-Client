@@ -103,13 +103,14 @@ public class ClientProcessor extends Processor
         }
         else
         {
-            //File file = new File(fileName);
+            File file = new File(fileName);
 
-            /*if (file.exists())
+            if (file.exists())
             {
                 MessageWriter.writeMessage("File already exists: " + fileName);
-            }*/
-            
+            }
+            else
+            {
                 controlConnection.sendMessage(Commands.RETR + " " + fileName + suffix);
                 String response = controlConnection.receiveMessage();
 
@@ -117,16 +118,15 @@ public class ClientProcessor extends Processor
                 {
                     String transactionID = controlConnection.receiveCode();
 
-                    FileTransaction fileTransaction = new ReceiveFileTransaction(sessionId, transactionID, fileName, controlConnection, ClientConnectionFactory.getInstance());
-
-                    transferFile(fileTransaction, suffix.equals(Commands.COMMAND_SUFFIX));
+                    FileTransaction fileTransaction = new ReceiveFileTransaction(sessionId, transactionID, Commands.RETR, fileName, suffix.equals(Commands.COMMAND_SUFFIX), controlConnection, ClientConnectionFactory.getInstance());
+                    TransactionManager.getInstance().execute(fileTransaction);
                 }
                 else
                 {
                     MessageWriter.writeMessage(response);
                 }
 
-            
+            }
         }
     }
 
@@ -158,8 +158,8 @@ public class ClientProcessor extends Processor
                 {
                     String transactionID = controlConnection.receiveCode();
 
-                    FileTransaction fileTransaction = new SendFileTransaction(sessionId, transactionID, fileName, controlConnection, ClientConnectionFactory.getInstance());
-                    transferFile(fileTransaction, suffix.equals(Commands.COMMAND_SUFFIX));
+                    FileTransaction fileTransaction = new SendFileTransaction(sessionId, transactionID, Commands.STOR, fileName, suffix.equals(Commands.COMMAND_SUFFIX), controlConnection, ClientConnectionFactory.getInstance());
+                    TransactionManager.getInstance().execute(fileTransaction);
                 }
                 else
                 {
@@ -199,21 +199,6 @@ public class ClientProcessor extends Processor
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         System.out.print(promptMessage);
         return in.readLine();
-    }
-
-    //------------------------------------------------------------------------------------------------------------------
-    private void transferFile(FileTransaction fileTransaction, boolean runInBackground)
-    {
-        if (runInBackground)
-        {
-            MessageWriter.writeMessage("To terminate transferring file: " + fileTransaction.getFileName() + "\nUse command : " + Commands.TERM + " " + fileTransaction.getTransactionId());
-            Thread thread = new Thread(fileTransaction);
-            thread.start();
-        }
-        else
-        {
-            fileTransaction.run();
-        }
     }
 
 }

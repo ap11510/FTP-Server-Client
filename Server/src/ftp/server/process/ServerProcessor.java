@@ -339,8 +339,8 @@ public class ServerProcessor extends Processor
             String transactionId = TransactionManager.getInstance().generateId();
             controlConnection.sendMessage(transactionId);
 
-            FileTransaction fileTransaction = new SendFileTransaction(sessionId, transactionId, fileName, controlConnection, ServerConnectionFactory.getInstance());
-            transferFile(fileTransaction, suffix.equals(Commands.COMMAND_SUFFIX));
+            FileTransaction fileTransaction = new SendFileTransaction(sessionId, transactionId, Commands.RETR, fileName, suffix.equals(Commands.COMMAND_SUFFIX), controlConnection, ServerConnectionFactory.getInstance());
+            TransactionManager.getInstance().execute(fileTransaction);
         }
     }
 
@@ -349,23 +349,22 @@ public class ServerProcessor extends Processor
     {
         String fileName = workingDirectory.getCanonicalPath() + workingDirectory.toPath().getFileSystem().getSeparator() + argument;
 
-        /*File file = new File(fileName);
+        File file = new File(fileName);
 
         if (file.exists())
         {
             controlConnection.sendMessage(Codes.R_400 + "File already exists on remote host: " + fileName);
         }
         else
-        {*/
+        {
             controlConnection.sendMessage(Codes.R_100);
 
             String transactionId = TransactionManager.getInstance().generateId();
             controlConnection.sendMessage(transactionId);
 
-            FileTransaction fileTransaction = new ReceiveFileTransaction(sessionId, transactionId, fileName, controlConnection, ServerConnectionFactory.getInstance());
-
-            transferFile(fileTransaction, suffix.equals(Commands.COMMAND_SUFFIX));
-        //}
+            FileTransaction fileTransaction = new ReceiveFileTransaction(sessionId, transactionId, Commands.STOR, fileName, suffix.equals(Commands.COMMAND_SUFFIX), controlConnection, ServerConnectionFactory.getInstance());
+            TransactionManager.getInstance().execute(fileTransaction);
+        }
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -379,21 +378,6 @@ public class ServerProcessor extends Processor
         else
         {
             controlConnection.sendMessage("No fileTransaction in progress with the specified id: " + argument);
-        }
-    }
-
-
-    //------------------------------------------------------------------------------------------------------------------
-    private void transferFile(FileTransaction fileTransaction, boolean runInBackground)
-    {
-        if (runInBackground)
-        {
-            Thread thread = new Thread(fileTransaction);
-            thread.start();
-        }
-        else
-        {
-            fileTransaction.run();
         }
     }
 }

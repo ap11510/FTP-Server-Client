@@ -12,21 +12,23 @@ import java.io.IOException;
 public abstract class FileTransaction implements Runnable
 {
     protected String sessionId;
-    protected String transactionId;
+    protected String id;
     protected ControlConnection controlConnection;
     protected DataConnection dataConnection;
     protected String fileName;
-
-    protected TransactionManager transactionManager = TransactionManager.getInstance();
+    protected String command;
+    protected boolean runInBackground;
 
     //------------------------------------------------------------------------------------------------------------------
-    protected FileTransaction(String sessionId, String transactionId, String fileName, ControlConnection controlConnection, ConnectionFactory connectionFactory) throws IOException
+    protected FileTransaction(String sessionId, String id, String command, String fileName, boolean runInBackground, ControlConnection controlConnection, ConnectionFactory connectionFactory) throws IOException
     {
         this.sessionId = sessionId;
-        this.transactionId = transactionId;
+        this.id = id;
+        this.command = command;
         this.fileName = fileName;
         this.controlConnection = controlConnection;
         this.dataConnection = connectionFactory.getDataConnection();
+        this.runInBackground = runInBackground;
     }
 
 
@@ -37,31 +39,19 @@ public abstract class FileTransaction implements Runnable
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    public String getTransactionId()
+    public String getId()
     {
-        return transactionId;
+        return id;
     }
 
     final public void run()
     {
-        if (beforeTransfer())
-        {
-            executeTransfer();
-            afterTransfer();
-        }
-        else
-        {
-            MessageWriter.writeMessage("FileTransaction already in progess for file: " + fileName);
-        }
-        transactionManager.removeTransaction(this);
+        executeTransfer();
+        afterTransfer();
+        TransactionManager.getInstance().removeTransaction(this);
         dataConnection.close();
     }
 
-    //------------------------------------------------------------------------------------------------------------------
-    private boolean beforeTransfer()
-    {
-        return transactionManager.addTransaction(this);
-    }
 
     //------------------------------------------------------------------------------------------------------------------
     abstract protected void executeTransfer();
@@ -107,5 +97,22 @@ public abstract class FileTransaction implements Runnable
     public void stop()
     {
         dataConnection.stopDataTransfer();
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+    public boolean isRunInBackground()
+    {
+        return runInBackground;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+    public ControlConnection getControlConnection()
+    {
+        return controlConnection;
+    }
+
+    public DataConnection getDataConnection()
+    {
+        return dataConnection;
     }
 }

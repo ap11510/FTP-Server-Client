@@ -1,12 +1,14 @@
 package ftp.common.net;
 
+import ftp.common.util.MessageWriter;
+
 import java.io.*;
 import java.net.Socket;
 
 public class DataConnection
 {
 
-    private static int BUFFER_SIZE = 16384;
+    private static int BUFFER_SIZE = 8192;
     protected boolean success = false;
     private Socket dataSocket;
     private DataInputStream dataInputStream;
@@ -22,60 +24,79 @@ public class DataConnection
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    final public void receiveData(File file) throws IOException
+    final public void receiveData(File file)
     {
-        FileOutputStream fileOutputStream = new FileOutputStream(file);
-
-        long size = dataInputStream.readLong();
-
-        byte[] buffer = new byte[BUFFER_SIZE];
-
-        int read = 0;
-        long remaining = size;
-
-
-        while (remaining > 0 && !stopped)
+        FileOutputStream fileOutputStream = null;
+        try
         {
-            read = dataInputStream.read(buffer);
-            remaining = remaining - read;
-            fileOutputStream.write(buffer, 0, read);
+            fileOutputStream = new FileOutputStream(file);
+
+            long size = dataInputStream.readLong();
+
+            byte[] buffer = new byte[BUFFER_SIZE];
+
+            int read = 0;
+            long remaining = size;
+
+
+            while (remaining > 0 && !stopped)
+            {
+                read = dataInputStream.read(buffer);
+                remaining = remaining - read;
+                if (!stopped)
+                {
+                    fileOutputStream.write(buffer, 0, read);
+                }
+            }
+            fileOutputStream.flush();
+            fileOutputStream.close();
+
         }
-        fileOutputStream.flush();
-        fileOutputStream.close();
-
-        if (stopped)
+        catch (Exception exception)
         {
-            file.delete();
+            MessageWriter.writeError("Error in DataConnection.receiveData()", exception);
+        }
+
+
+
+        if (!stopped)
+        {
+            success = true;
         }
         else
         {
-            success = true;
+            file.delete();
         }
     }
 
     //------------------------------------------------------------------------------------------------------------------
-    final public void sendData(File file) throws IOException
+    final public void sendData(File file)
     {
-        FileInputStream fileInputStream = new FileInputStream(file);
-
-        long size = file.length();
-
-        dataOutputStream.writeLong(size);
-
-        byte[] buffer = new byte[BUFFER_SIZE];
-
-        while (fileInputStream.read(buffer) > -1 && !stopped)
+        try
         {
-            dataOutputStream.write(buffer);
-        }
-        dataOutputStream.flush();
+            FileInputStream fileInputStream = new FileInputStream(file);
 
-        fileInputStream.close();
-        if (stopped)
-        {
-            file.delete();
+            long size = file.length();
+
+            dataOutputStream.writeLong(size);
+
+            byte[] buffer = new byte[BUFFER_SIZE];
+
+            while (fileInputStream.read(buffer) > -1 && !stopped)
+            {
+                dataOutputStream.write(buffer);
+            }
+            dataOutputStream.flush();
+
+            fileInputStream.close();
+
         }
-        else
+        catch (Exception exception)
+        {
+            MessageWriter.writeError("Error in DataConnection.sendData()", exception);
+        }
+
+        if (!stopped)
         {
             success = true;
         }
@@ -93,6 +114,7 @@ public class DataConnection
         }
         catch (IOException exception)
         {
+            MessageWriter.writeError("Error in DataConnection.close()", exception);
 
         }
     }

@@ -10,9 +10,9 @@ import java.io.IOException;
 public class ReceiveFileTransaction extends FileTransaction
 {
     //------------------------------------------------------------------------------------------------------------------
-    public ReceiveFileTransaction(String sessionId, String transactionID, String fileName, ControlConnection controlConnection, ConnectionFactory connectionFactory) throws IOException
+    public ReceiveFileTransaction(String sessionId, String transactionID, String transactionCommand, String fileName, boolean runInBackground, ControlConnection controlConnection, ConnectionFactory connectionFactory) throws IOException
     {
-        super(sessionId, transactionID, fileName, controlConnection, connectionFactory);
+        super(sessionId, transactionID, transactionCommand, fileName, runInBackground, controlConnection, connectionFactory);
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -20,13 +20,6 @@ public class ReceiveFileTransaction extends FileTransaction
     public void executeTransfer()
     {
         File file = new File(fileName);
-        try
-        {
-            dataConnection.receiveData(file);
-        }
-        catch (Exception exception)
-        {
-            MessageWriter.writeError("Could not successfully receive file: " + fileName, exception);
-        }
+        dataConnection.receiveData(file);
     }
 }

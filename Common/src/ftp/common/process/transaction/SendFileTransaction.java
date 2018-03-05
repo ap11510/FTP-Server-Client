@@ -10,22 +10,15 @@ import java.io.IOException;
 public class SendFileTransaction extends FileTransaction
 {
     //------------------------------------------------------------------------------------------------------------------
-    public SendFileTransaction(String sessionId, String transactionID, String fileName, ControlConnection controlConnection, ConnectionFactory connectionFactory) throws IOException
+    public SendFileTransaction(String sessionId, String transactionID, String transactionCommand, String fileName, boolean runInBackground, ControlConnection controlConnection, ConnectionFactory connectionFactory) throws IOException
     {
-        super(sessionId, transactionID, fileName, controlConnection, connectionFactory);
+        super(sessionId, transactionID, transactionCommand,  fileName, runInBackground, controlConnection, connectionFactory);
     }
 
     //------------------------------------------------------------------------------------------------------------------
     public void executeTransfer()
     {
-        try
-        {
-            File file = new File(fileName);
-            dataConnection.sendData(file);
-        }
-        catch (Exception exception)
-        {
-            MessageWriter.writeError("Could not successfully send file: " + fileName, exception);
-        }
+        File file = new File(fileName);
+        dataConnection.sendData(file);
     }
 }
